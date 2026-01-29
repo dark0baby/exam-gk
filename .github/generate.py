@@ -15,20 +15,19 @@ with open(DB_FILE, "r", encoding="utf-8") as f:
 
 # Load index
 if os.path.exists(INDEX_FILE):
-    with open(INDEX_FILE, "r") as f:
+    with open(INDEX_FILE, "r", encoding="utf-8") as f:
         index = json.load(f)
 else:
-    index = {"daily": [], "weekly": {}, "monthly": {}, "yearly": []}
+    index = {"daily": []}
 
-# Avoid repeating >20%
+# Recent questions last 5 days
 recent_questions = []
 for day in index["daily"][-5:]:
-    daily_file = f"data/daily_tests/{day}/daily_test.json"
-    if os.path.exists(daily_file):
-        with open(daily_file, "r") as f:
+    file = f"data/daily_tests/{day}/daily_test.json"
+    if os.path.exists(file):
+        with open(file, "r") as f:
             recent_questions.extend([q["question"] for q in json.load(f)])
 
-# Pick 15 questions, max 20% repeats
 MAX_QUESTIONS = 15
 today_questions = []
 
