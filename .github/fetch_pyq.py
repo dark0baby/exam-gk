@@ -5,19 +5,35 @@ from datetime import date
 
 DB_FILE = "data/gk_database.json"
 today = date.today().isoformat()
-
 os.makedirs("data", exist_ok=True)
 
-# Example SSC CGL PYQ source (replace with actual)
+# SSC/Bank PYQ sources
 SOURCES = [
     {
-        "name": "SSC CGL PYQs",
-        "url": "https://www.example.com/ssc-cgl-pyqs",
-        "parser": "html"  # we'll use BeautifulSoup
+        "name": "SSC CGL",
+        "url": "https://sscportal.in/ssc-cgl-past-questions",
+        "question_selector": ".q-block .q",
+        "option_selector": ".q-block .option",
+        "answer_selector": ".q-block .answer",
+        "topic_selector": ".q-block .topic",
+    },
+    {
+        "name": "SSC CHSL",
+        "url": "https://sscportal.in/ssc-chsl-past-questions",
+        "question_selector": ".q-block .q",
+        "option_selector": ".q-block .option",
+        "answer_selector": ".q-block .answer",
+        "topic_selector": ".q-block .topic",
+    },
+    {
+        "name": "SBI PO",
+        "url": "https://www.sbi.co.in/careers/past-question-papers",
+        "question_selector": ".q-block .q",
+        "option_selector": ".q-block .option",
+        "answer_selector": ".q-block .answer",
+        "topic_selector": ".q-block .topic",
     }
 ]
-
-all_questions = []
 
 # Load existing DB
 if os.path.exists(DB_FILE):
@@ -27,22 +43,22 @@ else:
     db = []
 
 existing_qs = [q["question"] for q in db]
+new_questions = []
 
 for src in SOURCES:
     try:
-        resp = requests.get(src["url"])
-        soup = BeautifulSoup(resp.text, "lxml")
-
-        # Example parsing logic — adjust based on actual website
-        for block in soup.select(".question-block"):
-            question = block.select_one(".q").text.strip()
-            options = [opt.text.strip() for opt in block.select(".option")]
-            answer = block.select_one(".answer").text.strip()
-            topic = block.select_one(".topic").text.strip()
-            notes = {opt: f"Short note for {opt}" for opt in options}
+        r = requests.get(src["url"])
+        soup = BeautifulSoup(r.text, "lxml")
+        questions = soup.select(src["question_selector"])
+        for i, q_el in enumerate(questions):
+            question = q_el.get_text(strip=True)
+            options = [opt.get_text(strip=True) for opt in soup.select(src["option_selector"])]
+            answer = soup.select(src["answer_selector"])[i].get_text(strip=True)
+            topic = soup.select(src["topic_selector"])[i].get_text(strip=True)
+            notes = {opt: f"Note for {opt}" for opt in options}
 
             if question not in existing_qs:
-                all_questions.append({
+                new_questions.append({
                     "subject": topic,
                     "topic": topic,
                     "question": question,
@@ -52,11 +68,11 @@ for src in SOURCES:
                     "source": src["name"]
                 })
     except Exception as e:
-        print(f"Failed to fetch {src['name']}: {e}")
+        print(f"Failed {src['name']}: {e}")
 
-db.extend(all_questions)
+db.extend(new_questions)
 
 with open(DB_FILE, "w", encoding="utf-8") as f:
     json.dump(db, f, indent=2)
 
-print(f"{len(all_questions)} new questions added on {today}")
+print(f"Added {len(new_questions)} new questions on {today}")
