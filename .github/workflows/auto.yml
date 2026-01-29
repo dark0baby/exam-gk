@@ -1,0 +1,35 @@
+name: Auto SSC GK Generator
+
+on:
+  schedule:
+    - cron: "0 18 * * *"   # Runs every day at 12 AM IST (18 UTC)
+  workflow_dispatch:       # Manual run allowed
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Python Libraries
+        run: |
+          pip install requests beautifulsoup4 lxml
+
+      - name: Fetch PYQs & GK
+        run: python fetch_pyq.py
+
+      - name: Generate Daily Test
+        run: python generate.py
+
+      - name: Commit & Push Updates
+        run: |
+          git config user.name "ca-bot"
+          git config user.email "ca-bot@users.noreply.github.com"
+          git add .
+          git commit -m "Daily SSC GK Update" || echo "No changes"
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
